@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "authorization",
+  "type": "object",
+  "properties": {
+    "authorization_reference": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "applicant_reference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "service_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provider_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "PENDING",
+        "GRANTED",
+        "DENIED",
+        "EXPIRED",
+        "REVOKED"
+      ]
+    },
+    "authorized_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "revoked_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "transaction_reference": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "authorization_reference",
+    "applicant_reference",
+    "service_id",
+    "provider_id",
+    "evidence_categories",
+    "purpose",
+    "status",
+    "authorized_at",
+    "expires_at",
+    "revoked_at",
+    "transaction_reference"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "GRANTED",
+              "EXPIRED",
+              "REVOKED"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authorized_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "REVOKED"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "revoked_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "EXPIRED"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  ]
+}

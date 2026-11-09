@@ -1,0 +1,21 @@
+{
+  "rule_id": "DEMO-INCOME",
+  "rule_name": "Demo income ceiling",
+  "description": "Illustrative only; not official policy.",
+  "scheme_id": "DEMO-PMS",
+  "academic_year": 2026,
+  "evidence_field": "revenue.annual_income",
+  "operator": "LESS_THAN_OR_EQUAL",
+  "expected_value": 250000,
+  "severity": "REQUIRED",
+  "source_document": "Synthetic demonstration guideline",
+  "source_page": 1,
+  "source_section": "Demo income",
+  "source_text": "For the fixture, annual income may be up to INR 250000.",
+  "effective_from": "2026-01-01",
+  "effective_until": "2026-12-31",
+  "version": 1,
+  "approval_status": "PENDING",
+  "approved_by": null,
+  "approved_at": null
+}

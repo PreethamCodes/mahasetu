@@ -1,0 +1,1031 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MahaSetu Core",
+    "version": "1.0.0"
+  },
+  "security": [
+    {
+      "Requester": []
+    }
+  ],
+  "paths": {
+    "/v1/verification-requests": {
+      "post": {
+        "summary": "Create or replay request",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Same service, key and normalized payload replay the original transaction. Changed payload returns 409."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transaction_reference": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "enum": [
+                        "CREATED",
+                        "AUTHENTICATION_PENDING",
+                        "AUTHORIZED",
+                        "PROCESSING",
+                        "VERIFIED",
+                        "FAILED_CHECK",
+                        "PARTIAL",
+                        "MANUAL_REVIEW",
+                        "INSUFFICIENT_DATA",
+                        "RULES_NOT_CONFIGURED",
+                        "ACCESS_DENIED",
+                        "PROVIDER_ERROR",
+                        "CANCELLED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "transaction_reference",
+                    "state"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Record missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Key reused with changed payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Provider error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "service_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "application_reference": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "applicant_reference": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "requested_evidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "provider_id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "evidence_categories": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "minItems": 1,
+                          "uniqueItems": true
+                        }
+                      },
+                      "required": [
+                        "provider_id",
+                        "evidence_categories"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "service_id",
+                  "application_reference",
+                  "applicant_reference",
+                  "purpose",
+                  "requested_evidence"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/verification-requests/{request_id}": {
+      "get": {
+        "summary": "Retrieve scoped transaction status and department authorizations",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transaction_reference": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "enum": [
+                        "CREATED",
+                        "AUTHENTICATION_PENDING",
+                        "AUTHORIZED",
+                        "PROCESSING",
+                        "VERIFIED",
+                        "FAILED_CHECK",
+                        "PARTIAL",
+                        "MANUAL_REVIEW",
+                        "INSUFFICIENT_DATA",
+                        "RULES_NOT_CONFIGURED",
+                        "ACCESS_DENIED",
+                        "PROVIDER_ERROR",
+                        "CANCELLED"
+                      ]
+                    },
+                    "authorizations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Authorization"
+                      }
+                    }
+                  },
+                  "required": [
+                    "transaction_reference",
+                    "state",
+                    "authorizations"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Record missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Provider error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/verification-requests/{request_id}/cancel": {
+      "post": {
+        "summary": "Cancel an active request; replay cancellation returns same status",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transaction_reference": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "enum": [
+                        "CREATED",
+                        "AUTHENTICATION_PENDING",
+                        "AUTHORIZED",
+                        "PROCESSING",
+                        "VERIFIED",
+                        "FAILED_CHECK",
+                        "PARTIAL",
+                        "MANUAL_REVIEW",
+                        "INSUFFICIENT_DATA",
+                        "RULES_NOT_CONFIGURED",
+                        "ACCESS_DENIED",
+                        "PROVIDER_ERROR",
+                        "CANCELLED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "transaction_reference",
+                    "state"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Record missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Provider error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/verification-requests/{request_id}/results": {
+      "get": {
+        "summary": "Retrieve consolidated report",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transaction_reference": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "enum": [
+                        "CREATED",
+                        "AUTHENTICATION_PENDING",
+                        "AUTHORIZED",
+                        "PROCESSING",
+                        "VERIFIED",
+                        "FAILED_CHECK",
+                        "PARTIAL",
+                        "MANUAL_REVIEW",
+                        "INSUFFICIENT_DATA",
+                        "RULES_NOT_CONFIGURED",
+                        "ACCESS_DENIED",
+                        "PROVIDER_ERROR",
+                        "CANCELLED"
+                      ]
+                    },
+                    "passed": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "failed": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "needs_review": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "recommendation": {
+                      "enum": [
+                        "APPROVE",
+                        "REJECT",
+                        "MANUAL_REVIEW"
+                      ]
+                    },
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "rule_id": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "rule_version": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "provider_id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "outcome": {
+                            "enum": [
+                              "PASS",
+                              "FAIL",
+                              "NEEDS_REVIEW"
+                            ]
+                          },
+                          "reason_code": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "evidence_reference": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "rule_id",
+                          "rule_version",
+                          "provider_id",
+                          "outcome",
+                          "reason_code",
+                          "evidence_reference"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "transaction_reference",
+                    "state",
+                    "passed",
+                    "failed",
+                    "needs_review",
+                    "recommendation",
+                    "checks"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Record missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Report pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Provider error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/services/{service_id}/requirements": {
+      "get": {
+        "summary": "Read registered service requirements",
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "purpose": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "requirements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "provider_id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "evidence_categories": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "minItems": 1,
+                            "uniqueItems": true
+                          },
+                          "authorization_required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "provider_id",
+                          "evidence_categories",
+                          "authorization_required"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "service_id",
+                    "purpose",
+                    "requirements"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Record missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Provider error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "Requester": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Server credential bound to one registered requesting service. Scope every read, result and cancellation to that identity."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "INPUT",
+              "AUTHENTICATION",
+              "PERMISSION",
+              "MISSING",
+              "CONFLICT",
+              "PROVIDER",
+              "INTERNAL"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transaction_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "message",
+          "transaction_reference",
+          "provider_reference",
+          "retryable",
+          "timestamp"
+        ],
+        "additionalProperties": false
+      },
+      "Authorization": {
+        "type": "object",
+        "properties": {
+          "authorization_reference": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicant_reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "service_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_categories": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "GRANTED",
+              "DENIED",
+              "EXPIRED",
+              "REVOKED"
+            ]
+          },
+          "authorized_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "transaction_reference": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "authorization_reference",
+          "applicant_reference",
+          "service_id",
+          "provider_id",
+          "evidence_categories",
+          "purpose",
+          "status",
+          "authorized_at",
+          "expires_at",
+          "revoked_at",
+          "transaction_reference"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "enum": [
+                    "GRANTED",
+                    "EXPIRED",
+                    "REVOKED"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "authorized_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "enum": [
+                    "REVOKED"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "revoked_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "enum": [
+                    "EXPIRED"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "expires_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

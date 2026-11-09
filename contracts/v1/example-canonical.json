@@ -1,0 +1,21 @@
+{
+  "student_id": "MHSTU0001",
+  "source_student_reference": "MHSTU0001",
+  "provider_id": "revenue",
+  "source_record_reference": "income-1",
+  "retrieved_at": "2026-11-09T00:00:00Z",
+  "source_updated_at": null,
+  "source_schema_version": "1",
+  "transformation_version": "1",
+  "validation_warnings": [
+    "Caste certificate not requested."
+  ],
+  "evidence_status": "PRESENT",
+  "evidence": {
+    "annual_income": 150000,
+    "income_certificate_status": "VALID",
+    "caste_certificate_status": null,
+    "certificate_issue_date": "2025-01-01",
+    "certificate_expiry_date": "2027-01-01"
+  }
+}
