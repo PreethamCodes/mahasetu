@@ -4,7 +4,7 @@
 MahaSetu replaces uploaded photocopies and one-off integrations with a single layer that asks each department for the real record, only after the citizen agrees, and returns a plain-language result.
 
 > **Synthetic data only.** Every name, certificate, number and message in this project is made up. No real SMS is sent.
-> > [!IMPORTANT]
+> [!IMPORTANT]
 > **All nine services are live.** Pages are for people; health addresses are for checking that a service is up.
 > > [!NOTE]
 > **A note for judges: hosting speed, not product behaviour.**
