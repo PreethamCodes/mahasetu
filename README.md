@@ -46,7 +46,7 @@ cp .env.example .env                        # then fill in DATABASE_URL and the 
 uvicorn mahasetu_core.main:app --port 8000
 ```
 
-`GET /health` reports database readiness. Configuration is described in `.env.example`: the runtime `DATABASE_URL` (scoped to the `mahasetu` schema), `DASHBOARD_CLIENT_TOKEN`, `OTP_HASH_KEY`, one `REQUESTER_TOKEN_<NAME>` per registered service (derived from its `credential_ref`), the department credentials, and `OTP_DEMO_DISCLOSURE` (demonstration only; refused when `CORE_ENVIRONMENT=production`). Secrets must be at least 24 characters.
+`GET /health` reports database readiness. Configuration is described in `.env.example`: the runtime `DATABASE_URL` (scoped to the `mahasetu` schema), `DASHBOARD_CLIENT_TOKEN`, `OTP_HASH_KEY`, one `REQUESTER_TOKEN_<NAME>` per registered service (derived from its `credential_ref`), the department credentials, and `OTP_DEMO_DISCLOSURE` (demonstration only; refused when `CORE_ENVIRONMENT=production`). Secrets must be at least 24 characters. `RETURN_URL_<SERVICE_ID>` (for example `RETURN_URL_DEMO_PMS`) replaces the return address stored for a registered service, so one seeded database can serve a localhost and a hosted portal; it must be http(s) without credentials and https in production. On hosts that sleep when idle, raise `PROVIDER_TIMEOUT_SECONDS` (for example 30) so a department that is waking is not reported as unavailable.
 
 ## Tests
 

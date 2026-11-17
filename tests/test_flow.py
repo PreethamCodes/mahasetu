@@ -1,4 +1,5 @@
 """Applicant flow end to end through the HTTP API, against a real PostgreSQL and fake departments."""
+import dataclasses
 import re
 import uuid
 
@@ -273,3 +274,12 @@ def test_overview_content_and_privacy(world):
     assert revenue["display_name"] == "Revenue Department" and revenue["status"] == "NOT_STARTED"
     assert [d["label"] for d in revenue["documents"]] == ["Income certificate", "Caste certificate"]
     assert "9000000003" not in str(overview) and overview["service_name"]
+
+
+def test_return_address_can_be_set_for_the_environment(world):
+    world.core.settings = dataclasses.replace(
+        world.core.settings, return_urls={"RETURN_URL_DEMO_PMS": "https://portal.example.test/verification/return"})
+    transaction, headers, done = world.run_all("MHSTU0001")
+    assert done["return_url"] == "https://portal.example.test/verification/return?ref=" + transaction
+    again = world.client.post("/v1/applicant/session/complete", headers=headers)
+    assert again.status_code == 200 and again.json()["return_url"] == done["return_url"]

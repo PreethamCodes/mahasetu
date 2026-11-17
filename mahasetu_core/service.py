@@ -675,7 +675,7 @@ class Core:
                 queued = True
             self.audit(conn, req["id"], "core", "VERIFICATION_COMPLETED", {"state": state})
             response = {"transaction_reference": str(req["id"]), "state": state,
-                        "return_url": return_url(req["return_url"], req["id"]), "message_queued": queued}
+                        "return_url": return_url(self.settings.return_base(req["service_id"], req["return_url"]), req["id"]), "message_queued": queued}
         if queued:
             outbox.dispatch(self.db, self.sender, self.now())
         return response
@@ -684,7 +684,7 @@ class Core:
         queued = bool(one(conn, "SELECT 1 FROM mahasetu.message_outbox WHERE request_id = :r AND kind = 'VERIFICATION_RESULT'",
                           r=req["id"]))
         return {"transaction_reference": str(req["id"]), "state": req["state"],
-                "return_url": return_url(req["return_url"], req["id"]), "message_queued": queued}
+                "return_url": return_url(self.settings.return_base(req["service_id"], req["return_url"]), req["id"]), "message_queued": queued}
 
     def report(self, conn, req):
         if not is_terminal(req["state"]):

@@ -12,7 +12,7 @@ from mahasetu_core.connectors import Fetch, Revenue
 from mahasetu_core.normalize import SCHEMA, normalize
 from mahasetu_core.rules import Check, Record
 from mahasetu_core.security import bearer, mask_mobile, otp_code, otp_hash
-from mahasetu_core.settings import CONTRACTS, Settings, requester_env_name
+from mahasetu_core.settings import CONTRACTS, Settings, requester_env_name, return_url_env_name
 from mahasetu_core.states import ACTIVE, GRAPH, TERMINAL, can_move
 
 TODAY = date(2026, 11, 17)
@@ -404,6 +404,30 @@ def test_settings(monkeypatch):
     monkeypatch.setenv("OTP_TTL_SECONDS", "5")
     with pytest.raises(RuntimeError, match="OTP_TTL_SECONDS"):
         Settings.from_env()
+
+
+def test_return_address_override(monkeypatch):
+    assert return_url_env_name("DEMO-PMS") == "RETURN_URL_DEMO_PMS"
+    for key, value in {"DATABASE_URL": "postgresql+psycopg://x", "DASHBOARD_CLIENT_TOKEN": "d" * 32, "OTP_HASH_KEY": "k" * 32}.items():
+        monkeypatch.setenv(key, value)
+    for key in ("OTP_DEMO_DISCLOSURE", "CORE_ENVIRONMENT", "RETURN_URL_DEMO_PMS"):
+        monkeypatch.delenv(key, raising=False)
+    settings = Settings.from_env()
+    assert settings.return_base("DEMO-PMS", "http://localhost:3000/r") == "http://localhost:3000/r"
+    monkeypatch.setenv("RETURN_URL_DEMO_PMS", "https://portal.example.test/verification/return")
+    settings = Settings.from_env()
+    assert settings.return_base("DEMO-PMS", "http://localhost:3000/r") == "https://portal.example.test/verification/return"
+    assert settings.return_base("OTHER", "http://other/r") == "http://other/r"
+    for bad in ("ftp://portal.example.test/r", "javascript:alert(1)", "https://user:pw@portal.example.test/r", "https://portal.example.test/r#x", "/relative"):
+        monkeypatch.setenv("RETURN_URL_DEMO_PMS", bad)
+        with pytest.raises(RuntimeError, match="RETURN_URL_DEMO_PMS"):
+            Settings.from_env()
+    monkeypatch.setenv("CORE_ENVIRONMENT", "production")
+    monkeypatch.setenv("RETURN_URL_DEMO_PMS", "http://portal.example.test/r")
+    with pytest.raises(RuntimeError, match="https"):
+        Settings.from_env()
+    monkeypatch.setenv("RETURN_URL_DEMO_PMS", "https://portal.example.test/r")
+    assert Settings.from_env().return_urls
 
 
 def test_student_reference_cannot_alter_the_request_path():

@@ -3,6 +3,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlsplit
 
 CONTRACTS = Path(__file__).resolve().parent.parent / "contracts" / "v1"
 MIN_SECRET_LENGTH = 24
@@ -33,6 +34,27 @@ def requester_env_name(credential_ref):
     return "REQUESTER_TOKEN_" + re.sub(r"[^A-Za-z0-9]+", "_", tail).strip("_").upper()
 
 
+def return_url_env_name(service_id):
+    """DEMO-PMS -> RETURN_URL_DEMO_PMS."""
+    return "RETURN_URL_" + re.sub(r"[^A-Za-z0-9]+", "_", service_id).strip("_").upper()
+
+
+def _return_urls(environment):
+    """Per-environment return addresses that replace a registered service's stored one (RETURN_URL_<SERVICE_ID>)."""
+    urls = {}
+    for name, value in os.environ.items():
+        if not name.startswith("RETURN_URL_") or not value:
+            continue
+        parts = urlsplit(value)
+        local = parts.hostname in ("localhost", "127.0.0.1", "::1")
+        if parts.scheme not in ("http", "https") or not parts.hostname or parts.username or parts.fragment:
+            raise RuntimeError(f"{name} must be an http(s) address without credentials or a fragment")
+        if environment == "production" and parts.scheme != "https" and not local:
+            raise RuntimeError(f"{name} must use https when CORE_ENVIRONMENT=production")
+        urls[name] = value
+    return urls
+
+
 @dataclass(frozen=True)
 class Settings:
     database_url: str
@@ -57,6 +79,7 @@ class Settings:
     provider_backoff_seconds: float = 0.3
     retrieval_stale_seconds: int = 90
     provider_urls: dict = field(default_factory=dict)  # optional overrides keyed by provider id
+    return_urls: dict = field(default_factory=dict)  # optional overrides keyed by RETURN_URL_<SERVICE_ID>
 
     @classmethod
     def from_env(cls):
@@ -91,7 +114,12 @@ class Settings:
             provider_timeout_seconds=float(os.environ.get("PROVIDER_TIMEOUT_SECONDS") or 5),
             provider_attempts=_int("PROVIDER_ATTEMPTS", 3, 1, 5),
             provider_urls=urls,
+            return_urls=_return_urls(environment),
         )
+
+    def return_base(self, service_id, registered):
+        """Where the applicant goes back to: this environment's override if set, otherwise the registered address."""
+        return self.return_urls.get(return_url_env_name(service_id), registered)
 
     def requester_token(self, credential_ref):
         """Token for a registered requester, or empty when it is not configured on this host."""
