@@ -4,9 +4,8 @@
 MahaSetu replaces uploaded photocopies and one-off integrations with a single layer that asks each department for the real record, only after the citizen agrees, and returns a plain-language result.
 
 > **Synthetic data only.** Every name, certificate, number and message in this project is made up. No real SMS is sent.
-> [!IMPORTANT]
-> **All nine services are live.** Pages are for people; health addresses are for checking that a service is up.
-> > [!NOTE]
+
+> [!NOTE]
 > **A note for judges: hosting speed, not product behaviour.**
 > This demo runs on free cloud hosting, which puts a service to sleep after 15 minutes without traffic.
 > - **The first page you open can take up to a minute** while a service wakes. Please wait rather than reloading.
@@ -14,7 +13,6 @@ MahaSetu replaces uploaded photocopies and one-off integrations with a single la
 > - **To wake everything at once**, open the [portal](https://mahasetu-portal-pk27.onrender.com), the [MahaSetu website](https://mahasetu-site-pk27.onrender.com) and the three department websites, then start the journey.
 > - Each full journey takes about a minute and a half when the services are warm.
 > - If anything still looks stuck, wait a minute and try again, or follow the steps on the [demo guide](https://mahasetu-portal-pk27.onrender.com/demo-guide).
-
 
 > [!IMPORTANT]
 > **START HERE**
