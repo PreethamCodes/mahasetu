@@ -16,6 +16,6 @@
     "income_certificate_status": "VALID",
     "caste_certificate_status": null,
     "certificate_issue_date": "2025-01-01",
-    "certificate_expiry_date": "2027-01-01"
+    "certificate_expiry_date": "2030-12-31"
   }
 }

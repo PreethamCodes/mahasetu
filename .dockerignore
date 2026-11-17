@@ -1,4 +1,10 @@
 *
 !Dockerfile
-!config/
-!config/health.txt
+!requirements.txt
+!requirements-db.txt
+!alembic.ini
+!mahasetu_core/
+!contracts/
+!db/
+**/__pycache__
+**/.pytest_cache

@@ -2,17 +2,42 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MahaSetu Core",
-    "version": "1.0.0"
+    "version": "1.1.0",
+    "description": "Requesting-service API plus the applicant-session API used by the MahaSetu website. Applicant flow: create request, redirect with launch_reference, exchange it for a session, per department send code, verify code and run check, then complete and return. Results with reasons are available to both the applicant and the requesting service. A failed, partial or otherwise unverified outcome queues an SMS that appears in the simulated message inbox."
   },
   "security": [
     {
       "Requester": []
     }
   ],
+  "tags": [
+    {
+      "name": "Requesting service"
+    },
+    {
+      "name": "MahaSetu website"
+    },
+    {
+      "name": "Applicant session"
+    },
+    {
+      "name": "Operations"
+    }
+  ],
   "paths": {
     "/v1/verification-requests": {
       "post": {
+        "operationId": "createVerificationRequest",
+        "tags": [
+          "Requesting service"
+        ],
         "summary": "Create or replay request",
+        "description": "Called by the requesting portal's server. The applicant's mobile number receives one-time codes and result messages and is never echoed in full. The return address comes from the requester registry, never from this body.",
+        "security": [
+          {
+            "Requester": []
+          }
+        ],
         "parameters": [
           {
             "in": "header",
@@ -25,184 +50,63 @@
             "description": "Same service, key and normalized payload replay the original transaction. Changed payload returns 409."
           }
         ],
-        "responses": {
-          "201": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "transaction_reference": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "state": {
-                      "enum": [
-                        "CREATED",
-                        "AUTHENTICATION_PENDING",
-                        "AUTHORIZED",
-                        "PROCESSING",
-                        "VERIFIED",
-                        "FAILED_CHECK",
-                        "PARTIAL",
-                        "MANUAL_REVIEW",
-                        "INSUFFICIENT_DATA",
-                        "RULES_NOT_CONFIGURED",
-                        "ACCESS_DENIED",
-                        "PROVIDER_ERROR",
-                        "CANCELLED"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "transaction_reference",
-                    "state"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Record missing",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Key reused with changed payload",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Provider error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Provider unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "service_id": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "application_reference": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "applicant_reference": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "purpose": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "requested_evidence": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "provider_id": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "evidence_categories": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "minItems": 1,
-                          "uniqueItems": true
-                        }
-                      },
-                      "required": [
-                        "provider_id",
-                        "evidence_categories"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "minItems": 1
-                  }
-                },
-                "required": [
-                  "service_id",
-                  "application_reference",
-                  "applicant_reference",
-                  "purpose",
-                  "requested_evidence"
-                ],
-                "additionalProperties": false
+                "$ref": "#/components/schemas/CreateVerificationRequest"
               }
             }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Request accepted. Send the applicant's browser to the MahaSetu website with the launch reference.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedVerification"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
     },
     "/v1/verification-requests/{request_id}": {
       "get": {
+        "operationId": "getVerificationRequest",
+        "tags": [
+          "Requesting service"
+        ],
         "summary": "Retrieve scoped transaction status and department authorizations",
+        "security": [
+          {
+            "Requester": []
+          }
+        ],
         "parameters": [
           {
             "name": "request_id",
@@ -227,21 +131,7 @@
                       "format": "uuid"
                     },
                     "state": {
-                      "enum": [
-                        "CREATED",
-                        "AUTHENTICATION_PENDING",
-                        "AUTHORIZED",
-                        "PROCESSING",
-                        "VERIFIED",
-                        "FAILED_CHECK",
-                        "PARTIAL",
-                        "MANUAL_REVIEW",
-                        "INSUFFICIENT_DATA",
-                        "RULES_NOT_CONFIGURED",
-                        "ACCESS_DENIED",
-                        "PROVIDER_ERROR",
-                        "CANCELLED"
-                      ]
+                      "$ref": "#/components/schemas/TransactionState"
                     },
                     "authorizations": {
                       "type": "array",
@@ -261,71 +151,38 @@
             }
           },
           "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
-            "description": "Record missing",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
-            "description": "Provider error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/ServerError"
           },
           "503": {
-            "description": "Provider unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
     },
     "/v1/verification-requests/{request_id}/cancel": {
       "post": {
+        "operationId": "cancelVerificationRequest",
+        "tags": [
+          "Requesting service"
+        ],
         "summary": "Cancel an active request; replay cancellation returns same status",
+        "security": [
+          {
+            "Requester": []
+          }
+        ],
         "parameters": [
           {
             "name": "request_id",
@@ -350,21 +207,7 @@
                       "format": "uuid"
                     },
                     "state": {
-                      "enum": [
-                        "CREATED",
-                        "AUTHENTICATION_PENDING",
-                        "AUTHORIZED",
-                        "PROCESSING",
-                        "VERIFIED",
-                        "FAILED_CHECK",
-                        "PARTIAL",
-                        "MANUAL_REVIEW",
-                        "INSUFFICIENT_DATA",
-                        "RULES_NOT_CONFIGURED",
-                        "ACCESS_DENIED",
-                        "PROVIDER_ERROR",
-                        "CANCELLED"
-                      ]
+                      "$ref": "#/components/schemas/TransactionState"
                     }
                   },
                   "required": [
@@ -377,81 +220,42 @@
             }
           },
           "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
-            "description": "Record missing",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "description": "Already completed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Conflict"
           },
           "500": {
-            "description": "Provider error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/ServerError"
           },
           "503": {
-            "description": "Provider unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
     },
     "/v1/verification-requests/{request_id}/results": {
       "get": {
+        "operationId": "getVerificationResults",
+        "tags": [
+          "Requesting service"
+        ],
         "summary": "Retrieve consolidated report",
+        "description": "Returns 409 REPORT_PENDING until the transaction is terminal.",
+        "security": [
+          {
+            "Requester": []
+          }
+        ],
         "parameters": [
           {
             "name": "request_id",
@@ -469,204 +273,47 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "transaction_reference": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "state": {
-                      "enum": [
-                        "CREATED",
-                        "AUTHENTICATION_PENDING",
-                        "AUTHORIZED",
-                        "PROCESSING",
-                        "VERIFIED",
-                        "FAILED_CHECK",
-                        "PARTIAL",
-                        "MANUAL_REVIEW",
-                        "INSUFFICIENT_DATA",
-                        "RULES_NOT_CONFIGURED",
-                        "ACCESS_DENIED",
-                        "PROVIDER_ERROR",
-                        "CANCELLED"
-                      ]
-                    },
-                    "passed": {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    "failed": {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    "needs_review": {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    "recommendation": {
-                      "enum": [
-                        "APPROVE",
-                        "REJECT",
-                        "MANUAL_REVIEW"
-                      ]
-                    },
-                    "checks": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "rule_id": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "rule_version": {
-                            "anyOf": [
-                              {
-                                "type": "integer",
-                                "minimum": 0
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "provider_id": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "outcome": {
-                            "enum": [
-                              "PASS",
-                              "FAIL",
-                              "NEEDS_REVIEW"
-                            ]
-                          },
-                          "reason_code": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "evidence_reference": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "rule_id",
-                          "rule_version",
-                          "provider_id",
-                          "outcome",
-                          "reason_code",
-                          "evidence_reference"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "transaction_reference",
-                    "state",
-                    "passed",
-                    "failed",
-                    "needs_review",
-                    "recommendation",
-                    "checks"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ResultReport"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
-            "description": "Record missing",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "description": "Report pending",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Conflict"
           },
           "500": {
-            "description": "Provider error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/ServerError"
           },
           "503": {
-            "description": "Provider unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
     },
     "/v1/services/{service_id}/requirements": {
       "get": {
+        "operationId": "getServiceRequirements",
+        "tags": [
+          "Requesting service"
+        ],
         "summary": "Read registered service requirements",
+        "security": [
+          {
+            "Requester": []
+          }
+        ],
         "parameters": [
           {
             "name": "service_id",
@@ -736,61 +383,525 @@
             }
           },
           "400": {
-            "description": "Invalid input",
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/applicant/sessions": {
+      "post": {
+        "operationId": "exchangeLaunchReference",
+        "tags": [
+          "MahaSetu website"
+        ],
+        "summary": "Exchange a launch reference for an applicant session",
+        "description": "The launch reference stays valid until launch_expires_at and may be exchanged again after a page reload; every exchange issues a fresh short-lived session token. Moves a CREATED transaction to AUTHENTICATION_PENDING. Expired references return 410 LAUNCH_EXPIRED.",
+        "security": [
+          {
+            "DashboardClient": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "launch_reference": {
+                    "$ref": "#/components/schemas/LaunchReference"
+                  }
+                },
+                "required": [
+                  "launch_reference"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session issued. The website keeps the token server-side or in an HttpOnly cookie.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/ApplicantSessionGrant"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/messages": {
+      "get": {
+        "operationId": "listMessages",
+        "tags": [
+          "MahaSetu website"
+        ],
+        "summary": "List simulated SMS messages (demo inbox)",
+        "description": "Messages are written to the Core outbox instead of a carrier, so a demonstration can show what an applicant would receive. Recipients are masked and bodies never contain raw department records.",
+        "security": [
+          {
+            "DashboardClient": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "transaction_reference",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/MessageKind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "description": "The next_cursor value of a previous page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageList"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/v1/applicant/session": {
+      "get": {
+        "operationId": "getApplicantSession",
+        "tags": [
+          "Applicant session"
+        ],
+        "summary": "Read the applicant's verification overview",
+        "description": "Lists each department, the documents or information the service needs from it and the applicant's progress. The website polls this while a department check is RETRIEVING.",
+        "security": [
+          {
+            "ApplicantSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicantOverview"
                 }
               }
             }
           },
           "401": {
-            "description": "Authentication failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Record missing",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unauthorized"
           },
           "500": {
-            "description": "Provider error",
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/v1/applicant/session/departments/{provider_id}/otp": {
+      "post": {
+        "operationId": "sendDepartmentOtp",
+        "tags": [
+          "Applicant session"
+        ],
+        "summary": "Send a one-time code for one department",
+        "description": "Starts a challenge for this transaction, department and purpose. A verified code is the applicant's consent for that department only. Codes are six digits, expire after five minutes and allow three attempts. A new request supersedes the previous challenge after resend_after. Demo deployments may include demo_code so the website can show a banner.",
+        "security": [
+          {
+            "ApplicantSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            },
+            "description": "Department identifier from the session's department list."
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Code queued as an SMS to the registered mobile.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/OtpChallenge"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/applicant/session/departments/{provider_id}/otp/verify": {
+      "post": {
+        "operationId": "verifyDepartmentOtp",
+        "tags": [
+          "Applicant session"
+        ],
+        "summary": "Verify the code and grant consent for one department",
+        "description": "400 INVALID_CODE for a wrong code, 410 OTP_EXPIRED, 429 OTP_ATTEMPTS_EXHAUSTED (request a new code), 409 NO_ACTIVE_CHALLENGE or ALREADY_AUTHORIZED. Moves the transaction to AUTHORIZED when the first department is granted.",
+        "security": [
+          {
+            "ApplicantSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            },
+            "description": "Department identifier from the session's department list."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpVerifyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Code accepted; the department authorization is GRANTED.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtpVerified"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/v1/applicant/session/departments/{provider_id}/verify": {
+      "post": {
+        "operationId": "runDepartmentCheck",
+        "tags": [
+          "Applicant session"
+        ],
+        "summary": "Retrieve and standardize evidence from one authorized department",
+        "description": "Requires a GRANTED, unexpired authorization (403 AUTHORIZATION_REQUIRED otherwise). Departments whose policy needs no authorization may be checked directly. Core calls the department with its own protocol and credentials, retries transient faults within a bounded budget, and normalizes the result. A technical failure leaves the card UNAVAILABLE and can be retried; it never becomes a failed eligibility check. 409 when already RETRIEVING or the transaction is terminal.",
+        "security": [
+          {
+            "ApplicantSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            },
+            "description": "Department identifier from the session's department list."
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Retrieval started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentCard"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/v1/applicant/session/departments/{provider_id}/decline": {
+      "post": {
+        "operationId": "declineDepartment",
+        "tags": [
+          "Applicant session"
+        ],
+        "summary": "Decline a department, or revoke a granted consent",
+        "description": "A pending authorization becomes DENIED and a granted one REVOKED. New calls to that department stop; late responses are ignored for decisions and audited. Other departments stay available. 409 when the transaction is terminal.",
+        "security": [
+          {
+            "ApplicantSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProviderId"
+            },
+            "description": "Department identifier from the session's department list."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recorded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentCard"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/v1/applicant/session/complete": {
+      "post": {
+        "operationId": "completeApplicantSession",
+        "tags": [
+          "Applicant session"
+        ],
+        "summary": "Finish, evaluate and obtain the return address",
+        "description": "Evaluates the standardized evidence with approved, applicable rule versions and moves the transaction to its terminal state. Departments that were declined or not started count as missing evidence. 409 RETRIEVAL_IN_PROGRESS while any department is RETRIEVING. Repeating the call on a terminal transaction returns the same result. If the state is not VERIFIED (or the request was not cancelled), Core queues one result SMS that lists the plain-language reasons.",
+        "security": [
+          {
+            "ApplicantSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Terminal state reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompletionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/v1/applicant/session/result": {
+      "get": {
+        "operationId": "getApplicantResult",
+        "tags": [
+          "Applicant session"
+        ],
+        "summary": "Read the applicant's result with reasons",
+        "description": "409 REPORT_PENDING before completion.",
+        "security": [
+          {
+            "ApplicantSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Liveness and database readiness",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
                 }
               }
             }
           },
           "503": {
-            "description": "Provider unavailable",
+            "description": "Database not ready",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Health"
                 }
               }
             }
@@ -805,6 +916,108 @@
         "type": "http",
         "scheme": "bearer",
         "description": "Server credential bound to one registered requesting service. Scope every read, result and cancellation to that identity."
+      },
+      "DashboardClient": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Server credential held only by the MahaSetu website's server. Never sent to a browser."
+      },
+      "ApplicantSession": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Short-lived opaque token from POST /v1/applicant/sessions. Bound to one transaction; every call is scoped to that transaction, its applicant and its service."
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid input",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Credential or session missing, invalid or expired",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Access denied by policy, authorization or ownership",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Record missing",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "State conflict, changed payload or duplicate",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Gone": {
+        "description": "Reference or challenge expired",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Throttled; wait and retry",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "Unexpected Core error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "Provider or dependency unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
       }
     },
     "schemas": {
@@ -1025,6 +1238,661 @@
             }
           }
         ]
+      },
+      "TransactionState": {
+        "enum": [
+          "CREATED",
+          "AUTHENTICATION_PENDING",
+          "AUTHORIZED",
+          "PROCESSING",
+          "VERIFIED",
+          "FAILED_CHECK",
+          "PARTIAL",
+          "MANUAL_REVIEW",
+          "INSUFFICIENT_DATA",
+          "RULES_NOT_CONFIGURED",
+          "ACCESS_DENIED",
+          "PROVIDER_ERROR",
+          "CANCELLED"
+        ],
+        "description": "Mirrors states.json. Terminal states have no exits."
+      },
+      "ProviderId": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{1,40}$",
+        "description": "Registered department identifier."
+      },
+      "Mobile": {
+        "type": "string",
+        "pattern": "^[6-9][0-9]{9}$",
+        "description": "Ten-digit synthetic mobile number."
+      },
+      "LaunchReference": {
+        "type": "string",
+        "minLength": 32,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "description": "Opaque, unguessable and free of evidence. Safe to place in a redirect URL."
+      },
+      "CreateVerificationRequest": {
+        "type": "object",
+        "properties": {
+          "service_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "application_reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "applicant_reference": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Identifier the departments recognize, such as MHSTU0001."
+          },
+          "applicant_mobile": {
+            "$ref": "#/components/schemas/Mobile"
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requested_evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "provider_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence_categories": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1,
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "provider_id",
+                "evidence_categories"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "service_id",
+          "application_reference",
+          "applicant_reference",
+          "applicant_mobile",
+          "purpose",
+          "requested_evidence"
+        ],
+        "additionalProperties": false
+      },
+      "CreatedVerification": {
+        "type": "object",
+        "properties": {
+          "transaction_reference": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TransactionState"
+          },
+          "launch_reference": {
+            "$ref": "#/components/schemas/LaunchReference"
+          },
+          "launch_expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "transaction_reference",
+          "state",
+          "launch_reference",
+          "launch_expires_at"
+        ],
+        "additionalProperties": false
+      },
+      "ResultReport": {
+        "type": "object",
+        "description": "VERIFIED is success, FAILED_CHECK is failure and PARTIAL means some checks passed while others failed or remain unresolved. Technical faults appear as NEEDS_REVIEW with a PROVIDER_ reason code and never as FAIL.",
+        "properties": {
+          "transaction_reference": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TransactionState"
+          },
+          "passed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "needs_review": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "recommendation": {
+            "enum": [
+              "APPROVE",
+              "REJECT",
+              "MANUAL_REVIEW"
+            ]
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rule_id": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rule_version": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rule_name": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "provider_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "outcome": {
+                  "enum": [
+                    "PASS",
+                    "FAIL",
+                    "NEEDS_REVIEW"
+                  ]
+                },
+                "reason_code": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 240,
+                  "description": "Plain-language reason shown to the applicant and used in the result SMS."
+                },
+                "evidence_reference": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "rule_id",
+                "rule_version",
+                "rule_name",
+                "provider_id",
+                "outcome",
+                "reason_code",
+                "message",
+                "evidence_reference"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "transaction_reference",
+          "state",
+          "passed",
+          "failed",
+          "needs_review",
+          "recommendation",
+          "completed_at",
+          "checks"
+        ],
+        "additionalProperties": false
+      },
+      "RequiredDocument": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "For example Income certificate."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the service needs from this evidence."
+          }
+        },
+        "required": [
+          "category",
+          "label",
+          "description"
+        ],
+        "additionalProperties": false
+      },
+      "DepartmentStatus": {
+        "enum": [
+          "NOT_STARTED",
+          "OTP_SENT",
+          "AUTHORIZED",
+          "RETRIEVING",
+          "COMPLETED",
+          "DECLINED",
+          "UNAVAILABLE"
+        ],
+        "description": "NOT_STARTED: nothing yet. OTP_SENT: code pending. AUTHORIZED: consent given, not retrieved. RETRIEVING: call in progress. COMPLETED: department answered (a missing record is still COMPLETED). DECLINED: applicant declined or revoked. UNAVAILABLE: technical failure; retry."
+      },
+      "DepartmentCard": {
+        "type": "object",
+        "properties": {
+          "provider_id": {
+            "$ref": "#/components/schemas/ProviderId"
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "$ref": "#/components/schemas/DepartmentStatus"
+          },
+          "authorization_required": {
+            "type": "boolean"
+          },
+          "documents": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/RequiredDocument"
+            }
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "provider_id",
+          "display_name",
+          "status",
+          "authorization_required",
+          "documents",
+          "detail",
+          "updated_at"
+        ],
+        "additionalProperties": false
+      },
+      "ApplicantOverview": {
+        "type": "object",
+        "properties": {
+          "transaction_reference": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TransactionState"
+          },
+          "service_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "service_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mobile_masked": {
+            "type": "string",
+            "pattern": "^[6-9][0-9]\u2022{5}[0-9]{3}$",
+            "description": "For example 90\u2022\u2022\u2022\u2022\u2022001."
+          },
+          "session_expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "can_complete": {
+            "type": "boolean",
+            "description": "False while any department is RETRIEVING."
+          },
+          "departments": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/DepartmentCard"
+            }
+          }
+        },
+        "required": [
+          "transaction_reference",
+          "state",
+          "service_id",
+          "service_name",
+          "purpose",
+          "mobile_masked",
+          "session_expires_at",
+          "can_complete",
+          "departments"
+        ],
+        "additionalProperties": false
+      },
+      "ApplicantSessionGrant": {
+        "type": "object",
+        "properties": {
+          "session_token": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256,
+            "description": "Opaque bearer token for the applicant session."
+          },
+          "session_expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "transaction_reference": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "session_token",
+          "session_expires_at",
+          "transaction_reference"
+        ],
+        "additionalProperties": false
+      },
+      "OtpChallenge": {
+        "type": "object",
+        "properties": {
+          "challenge_reference": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "provider_id": {
+            "$ref": "#/components/schemas/ProviderId"
+          },
+          "mobile_masked": {
+            "type": "string",
+            "pattern": "^[6-9][0-9]\u2022{5}[0-9]{3}$"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resend_after": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attempts_allowed": {
+            "type": "integer",
+            "const": 3
+          },
+          "demo_code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$",
+            "description": "Present only when the deployment is configured for demo disclosure. Never present in a production configuration."
+          }
+        },
+        "required": [
+          "challenge_reference",
+          "provider_id",
+          "mobile_masked",
+          "expires_at",
+          "resend_after",
+          "attempts_allowed"
+        ],
+        "additionalProperties": false
+      },
+      "OtpVerifyRequest": {
+        "type": "object",
+        "properties": {
+          "challenge_reference": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          }
+        },
+        "required": [
+          "challenge_reference",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "OtpVerified": {
+        "type": "object",
+        "properties": {
+          "department": {
+            "$ref": "#/components/schemas/DepartmentCard"
+          },
+          "authorization": {
+            "$ref": "#/components/schemas/Authorization"
+          }
+        },
+        "required": [
+          "department",
+          "authorization"
+        ],
+        "additionalProperties": false
+      },
+      "CompletionResponse": {
+        "type": "object",
+        "properties": {
+          "transaction_reference": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/TransactionState"
+          },
+          "return_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The registered return address with ref=<transaction_reference> appended. Never carries evidence."
+          },
+          "message_queued": {
+            "type": "boolean",
+            "description": "True when a result SMS was queued."
+          }
+        },
+        "required": [
+          "transaction_reference",
+          "state",
+          "return_url",
+          "message_queued"
+        ],
+        "additionalProperties": false
+      },
+      "MessageKind": {
+        "enum": [
+          "OTP",
+          "VERIFICATION_RESULT"
+        ]
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "message_reference": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transaction_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MessageKind"
+          },
+          "recipient_masked": {
+            "type": "string",
+            "pattern": "^[6-9][0-9]\u2022{5}[0-9]{3}$"
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 480
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "status": {
+            "enum": [
+              "QUEUED",
+              "SENT",
+              "FAILED"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "message_reference",
+          "transaction_reference",
+          "kind",
+          "recipient_masked",
+          "body",
+          "reason_codes",
+          "status",
+          "created_at",
+          "sent_at"
+        ],
+        "additionalProperties": false
+      },
+      "MessageList": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "messages",
+          "next_cursor"
+        ],
+        "additionalProperties": false
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "ok",
+              "unavailable"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false
       }
     }
   }
