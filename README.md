@@ -92,6 +92,14 @@ The full step-by-step is on the portal's **[Demo guide](https://mahasetu-portal-
 
 > [!IMPORTANT]
 > **All nine services are live.** Pages are for people; health addresses are for checking that a service is up.
+> > [!NOTE]
+> **A note for judges: hosting speed, not product behaviour.**
+> This demo runs on free cloud hosting, which puts a service to sleep after 15 minutes without traffic.
+> - **The first page you open can take up to a minute** while a service wakes. Please wait rather than reloading.
+> - **If a department card says "Could not be completed"**, that service was still waking. Choose **Verify again** and it will work. By design, MahaSetu never records a technical problem as the citizen failing a check.
+> - **To wake everything at once**, open the [portal](https://mahasetu-portal-pk27.onrender.com), the [MahaSetu website](https://mahasetu-site-pk27.onrender.com) and the three department websites, then start the journey.
+> - Each full journey takes about a minute and a half when the services are warm.
+> - If anything still looks stuck, wait a minute and try again, or follow the steps on the [demo guide](https://mahasetu-portal-pk27.onrender.com/demo-guide).
 
 ### Pages
 
